@@ -95,7 +95,7 @@ int main(int argc, char** argv)
     // Host recall must retain edited values and the selected factory program.
     const int selected = juce::jmin(2, plugin->getNumPrograms() - 1);
     plugin->setCurrentProgram(selected);
-    auto* first = plugin->getParameters().getFirst();
+    auto* first = plugin->getParameters()[instrument ? 0 : 1];
     first->setValueNotifyingHost(0.31f);
     const float savedValue = first->getValue();
     juce::MemoryBlock state;
@@ -112,6 +112,7 @@ int main(int argc, char** argv)
     juce::Array<juce::var> evidence;
     for (double rate : {44100.0, 48000.0, 96000.0, 192000.0}) {
         for (int block : {32, 256, 1024}) {
+            plugin->setCurrentProgram(1);
             plugin->setCurrentProgram(0);
             runAudio(*plugin, instrument, rate, block, evidence);
         }
@@ -119,6 +120,7 @@ int main(int argc, char** argv)
     // Every factory sound is reachable and safe to render.
     for (int program = 0; program < plugin->getNumPrograms(); ++program) {
         check(plugin->getProgramName(program).isNotEmpty(), "named factory program " + juce::String(program));
+        plugin->setCurrentProgram((program + 1) % plugin->getNumPrograms());
         plugin->setCurrentProgram(program);
         runAudio(*plugin, instrument, 48000.0, 256, evidence);
     }
@@ -130,7 +132,7 @@ int main(int argc, char** argv)
     }
     plugin->setCurrentProgram(0);
     {
-        std::unique_ptr<juce::AudioProcessorEditor> editor(plugin->createEditorIfNeeded());
+        std::unique_ptr<juce::AudioProcessorEditor> editor(plugin->createEditorAndMakeActive());
         check(editor != nullptr, "editor opens");
         if (editor) {
             if (requireRevival) {

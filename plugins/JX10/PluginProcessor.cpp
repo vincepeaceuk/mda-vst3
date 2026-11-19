@@ -1,4 +1,6 @@
 #include "PluginProcessor.h"
+#include "RevivalEditor.h"
+#include "RevivalState.h"
 
 JX10Program::JX10Program()
 {
@@ -78,7 +80,8 @@ int JX10AudioProcessor::getCurrentProgram()
 
 void JX10AudioProcessor::setCurrentProgram(int index)
 {
-    _currentProgram = index;
+    if (!juce::isPositiveAndBelow(index, getNumPrograms())) return;
+    _currentProgram.store(index, std::memory_order_relaxed);
 
     const char *paramNames[] = {
         "OSC Mix",
@@ -114,6 +117,7 @@ void JX10AudioProcessor::setCurrentProgram(int index)
 
 const juce::String JX10AudioProcessor::getProgramName(int index)
 {
+    if (!juce::isPositiveAndBelow(index, getNumPrograms())) return {};
     return { _programs[index].name };
 }
 
@@ -581,6 +585,11 @@ void JX10AudioProcessor::processEvents(juce::MidiBuffer &midiMessages)
 
 void JX10AudioProcessor::processBlock(juce::AudioBuffer<float> &buffer, juce::MidiBuffer &midiMessages)
 {
+    if (panicRequested.exchange(false, std::memory_order_relaxed)) {
+        resetState();
+        keyboardState.reset();
+    }
+    keyboardState.processNextMidiBuffer(midiMessages, 0, buffer.getNumSamples(), true);
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
@@ -1236,22 +1245,18 @@ void JX10AudioProcessor::noteOn(int note, int velocity)
 
 juce::AudioProcessorEditor *JX10AudioProcessor::createEditor()
 {
-    auto editor = new juce::GenericAudioProcessorEditor(*this);
-    editor->setSize(500, 1000);
-    return editor;
+    return new mda::RevivalEditor(*this, apvts, "JX10", &keyboardState,
+        [this] { panicRequested.store(true, std::memory_order_relaxed); });
 }
 
 void JX10AudioProcessor::getStateInformation(juce::MemoryBlock &destData)
 {
-    copyXmlToBinary(*apvts.copyState().createXml(), destData);
+    mda::saveState(apvts, _currentProgram.load(std::memory_order_relaxed), destData);
 }
 
 void JX10AudioProcessor::setStateInformation(const void *data, int sizeInBytes)
 {
-    std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
-    if (xml.get() != nullptr && xml->hasTagName(apvts.state.getType())) {
-        apvts.replaceState(juce::ValueTree::fromXml(*xml));
-    }
+    mda::restoreState(apvts, data, sizeInBytes, _currentProgram, getNumPrograms());
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout JX10AudioProcessor::createParameterLayout()

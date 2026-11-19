@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <atomic>
 
 const int NPARAMS = 16;       // number of parameters
 const int NVOICES = 8;        // max polyphony
@@ -80,6 +81,9 @@ public:
     void getStateInformation(juce::MemoryBlock &destData) override;
     void setStateInformation(const void *data, int sizeInBytes) override;
 
+    juce::MidiKeyboardState keyboardState;
+    std::atomic<bool> panicRequested{false};
+
     juce::AudioProcessorValueTreeState apvts { *this, nullptr, "Parameters", createParameterLayout() };
 
 private:
@@ -96,7 +100,7 @@ private:
     std::vector<DX10Program> _programs;
 
     // Index of the active preset.
-    int _currentProgram;
+    std::atomic<int> _currentProgram{0};
 
     // The current sample rate and 1 / sample rate.
     float _sampleRate, _inverseSampleRate;

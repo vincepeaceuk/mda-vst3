@@ -1,0 +1,5 @@
+PASS maximum depth/speed and clean reset at 44100 Hz
+PASS maximum depth/speed and clean reset at 48000 Hz
+PASS maximum depth/speed and clean reset at 96000 Hz
+PASS maximum depth/speed and clean reset at 192000 Hz
+PASS deterministic original-default impulse response

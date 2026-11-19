@@ -1,0 +1,4 @@
+tests/LeslieDspTests.cpp:1:10: fatal error: '../shared/LeslieDsp.h' file not found
+    1 | #include "../shared/LeslieDsp.h"
+      |          ^~~~~~~~~~~~~~~~~~~~~~~
+1 error generated.

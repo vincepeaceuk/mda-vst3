@@ -1,4 +1,6 @@
 #include "PluginProcessor.h"
+#include "RevivalEditor.h"
+#include "RevivalState.h"
 #include "mdaPianoData.h"
 
 MDAPianoProgram::MDAPianoProgram()
@@ -85,7 +87,8 @@ int MDAPianoAudioProcessor::getCurrentProgram()
 
 void MDAPianoAudioProcessor::setCurrentProgram(int index)
 {
-    _currentProgram = index;
+    if (!juce::isPositiveAndBelow(index, getNumPrograms())) return;
+    _currentProgram.store(index, std::memory_order_relaxed);
 
     const char *paramNames[] = {
         "Envelope Decay",
@@ -109,6 +112,7 @@ void MDAPianoAudioProcessor::setCurrentProgram(int index)
 
 const juce::String MDAPianoAudioProcessor::getProgramName(int index)
 {
+    if (!juce::isPositiveAndBelow(index, getNumPrograms())) return {};
     return { _programs[index].name };
 }
 
@@ -356,6 +360,11 @@ void MDAPianoAudioProcessor::processEvents(juce::MidiBuffer &midiMessages)
 
 void MDAPianoAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer, juce::MidiBuffer &midiMessages)
 {
+    if (panicRequested.exchange(false, std::memory_order_relaxed)) {
+        resetState();
+        keyboardState.reset();
+    }
+    keyboardState.processNextMidiBuffer(midiMessages, 0, buffer.getNumSamples(), true);
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
@@ -710,20 +719,18 @@ void MDAPianoAudioProcessor::noteOn(int note, int velocity)
 
 juce::AudioProcessorEditor *MDAPianoAudioProcessor::createEditor()
 {
-    return new juce::GenericAudioProcessorEditor(*this);
+    return new mda::RevivalEditor(*this, apvts, "Piano", &keyboardState,
+        [this] { panicRequested.store(true, std::memory_order_relaxed); });
 }
 
 void MDAPianoAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
 {
-    copyXmlToBinary(*apvts.copyState().createXml(), destData);
+    mda::saveState(apvts, _currentProgram.load(std::memory_order_relaxed), destData);
 }
 
 void MDAPianoAudioProcessor::setStateInformation(const void *data, int sizeInBytes)
 {
-    std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
-    if (xml.get() != nullptr && xml->hasTagName(apvts.state.getType())) {
-        apvts.replaceState(juce::ValueTree::fromXml(*xml));
-    }
+    mda::restoreState(apvts, data, sizeInBytes, _currentProgram, getNumPrograms());
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout MDAPianoAudioProcessor::createParameterLayout()

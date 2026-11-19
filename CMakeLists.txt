@@ -35,10 +35,18 @@ function(add_mda_plugin model product code synth category)
         JUCE_REPORT_APP_USAGE=0 JUCE_DISPLAY_SPLASH_SCREEN=0)
     target_link_libraries(${target} PRIVATE juce::juce_audio_utils
         PUBLIC juce::juce_recommended_config_flags)
+    if(APPLE)
+        # JUCE writes moduleinfo.json after its own signing step. Seal the
+        # finished bundle, including that manifest, for local macOS loading.
+        add_custom_command(TARGET ${target}_VST3 POST_BUILD
+            COMMAND /usr/bin/codesign --force --sign - --timestamp=none
+                "$<TARGET_BUNDLE_DIR:${target}_VST3>"
+            VERBATIM)
+    endif()
     if(BUILD_TESTING)
         add_executable(${target}_ProcessorTests tests/ProcessorTests.cpp)
         target_include_directories(${target}_ProcessorTests PRIVATE
-            "plugins/${model}" "${JUCE_PATH}/modules"
+            "plugins/${model}" shared "${JUCE_PATH}/modules"
             "${CMAKE_CURRENT_BINARY_DIR}/${target}_artefacts/JuceLibraryCode")
         target_compile_definitions(${target}_ProcessorTests PRIVATE
             MDA_TEST_MODEL="${model}" MDA_TEST_INSTRUMENT=$<BOOL:${synth}>)

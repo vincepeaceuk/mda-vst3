@@ -32,7 +32,7 @@ int main(int argc, char** argv)
     check(plugin->getCurrentProgram() == selected, "invalid program indices are ignored");
     check(plugin->getProgramName(-1).isEmpty(), "invalid program name is safe");
 
-    std::unique_ptr<juce::AudioProcessorEditor> editor(plugin->createEditorIfNeeded());
+    std::unique_ptr<juce::AudioProcessorEditor> editor(plugin->createEditorAndMakeActive());
     check(editor != nullptr, "editor is available");
     if (editor) {
         check(editor->getName() == "MDA Revival Editor", "custom vintage editor is used");

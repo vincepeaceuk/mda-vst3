@@ -1,4 +1,6 @@
 #include "PluginProcessor.h"
+#include "RevivalEditor.h"
+#include "RevivalState.h"
 #include "mdaEPianoData.h"
 
 MDAEPianoProgram::MDAEPianoProgram(const char *name,
@@ -113,7 +115,8 @@ int MDAEPianoAudioProcessor::getCurrentProgram()
 
 void MDAEPianoAudioProcessor::setCurrentProgram(int index)
 {
-    _currentProgram = index;
+    if (!juce::isPositiveAndBelow(index, getNumPrograms())) return;
+    _currentProgram.store(index, std::memory_order_relaxed);
 
     const char *paramNames[] = {
         "Envelope Decay",
@@ -137,6 +140,7 @@ void MDAEPianoAudioProcessor::setCurrentProgram(int index)
 
 const juce::String MDAEPianoAudioProcessor::getProgramName(int index)
 {
+    if (!juce::isPositiveAndBelow(index, getNumPrograms())) return {};
     return { _programs[index].name };
 }
 
@@ -387,6 +391,11 @@ void MDAEPianoAudioProcessor::processEvents(juce::MidiBuffer &midiMessages)
 
 void MDAEPianoAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer, juce::MidiBuffer &midiMessages)
 {
+    if (panicRequested.exchange(false, std::memory_order_relaxed)) {
+        resetState();
+        keyboardState.reset();
+    }
+    keyboardState.processNextMidiBuffer(midiMessages, 0, buffer.getNumSamples(), true);
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
@@ -728,20 +737,18 @@ void MDAEPianoAudioProcessor::noteOn(int note, int velocity)
 
 juce::AudioProcessorEditor *MDAEPianoAudioProcessor::createEditor()
 {
-    return new juce::GenericAudioProcessorEditor(*this);
+    return new mda::RevivalEditor(*this, apvts, "EPiano", &keyboardState,
+        [this] { panicRequested.store(true, std::memory_order_relaxed); });
 }
 
 void MDAEPianoAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
 {
-    copyXmlToBinary(*apvts.copyState().createXml(), destData);
+    mda::saveState(apvts, _currentProgram.load(std::memory_order_relaxed), destData);
 }
 
 void MDAEPianoAudioProcessor::setStateInformation(const void *data, int sizeInBytes)
 {
-    std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
-    if (xml.get() != nullptr && xml->hasTagName(apvts.state.getType())) {
-        apvts.replaceState(juce::ValueTree::fromXml(*xml));
-    }
+    mda::restoreState(apvts, data, sizeInBytes, _currentProgram, getNumPrograms());
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout MDAEPianoAudioProcessor::createParameterLayout()
