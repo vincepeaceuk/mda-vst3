@@ -1,0 +1,6 @@
+/deps/
+/upstream/
+/build*/
+/dist/
+/.DS_Store
+*.user
