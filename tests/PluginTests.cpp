@@ -96,7 +96,7 @@ int main(int argc, char** argv)
     const int selected = juce::jmin(2, plugin->getNumPrograms() - 1);
     plugin->setCurrentProgram(selected);
     auto* first = plugin->getParameters().getFirst();
-    first->setValueNotifyingHost(0.314f);
+    first->setValueNotifyingHost(0.31f);
     const float savedValue = first->getValue();
     juce::MemoryBlock state;
     plugin->getStateInformation(state);
@@ -130,7 +130,7 @@ int main(int argc, char** argv)
     }
     plugin->setCurrentProgram(0);
     {
-        std::unique_ptr<juce::AudioProcessorEditor> editor(plugin->createEditor());
+        std::unique_ptr<juce::AudioProcessorEditor> editor(plugin->createEditorIfNeeded());
         check(editor != nullptr, "editor opens");
         if (editor) {
             if (requireRevival) {

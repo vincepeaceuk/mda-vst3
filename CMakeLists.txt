@@ -35,6 +35,17 @@ function(add_mda_plugin model product code synth category)
         JUCE_REPORT_APP_USAGE=0 JUCE_DISPLAY_SPLASH_SCREEN=0)
     target_link_libraries(${target} PRIVATE juce::juce_audio_utils
         PUBLIC juce::juce_recommended_config_flags)
+    if(BUILD_TESTING)
+        add_executable(${target}_ProcessorTests tests/ProcessorTests.cpp)
+        target_include_directories(${target}_ProcessorTests PRIVATE
+            "plugins/${model}" "${JUCE_PATH}/modules"
+            "${CMAKE_CURRENT_BINARY_DIR}/${target}_artefacts/JuceLibraryCode")
+        target_compile_definitions(${target}_ProcessorTests PRIVATE
+            MDA_TEST_MODEL="${model}" MDA_TEST_INSTRUMENT=$<BOOL:${synth}>)
+        target_link_libraries(${target}_ProcessorTests PRIVATE ${target})
+        add_test(NAME ${model}_Processor COMMAND ${target}_ProcessorTests
+            "${CMAKE_CURRENT_BINARY_DIR}/screenshots")
+    endif()
 endfunction()
 
 add_mda_plugin(Piano "mda Piano" RvPi TRUE "Instrument;Sampler")
@@ -44,6 +55,9 @@ add_mda_plugin(JX10 "mda JX10" RvJx TRUE "Instrument;Synth")
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/plugins/Leslie/PluginProcessor.cpp")
     add_mda_plugin(Leslie "mda Leslie" RvLs FALSE "Fx;Modulation")
 endif()
+
+add_executable(LeslieDspTests tests/LeslieDspTests.cpp)
+add_test(NAME Leslie_DSP COMMAND LeslieDspTests)
 
 juce_add_console_app(MDAPluginTests PRODUCT_NAME "MDA VST3 tests")
 juce_generate_juce_header(MDAPluginTests)
