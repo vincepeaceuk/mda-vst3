@@ -1,6 +1,6 @@
 # MDA Revival for macOS
 
-Five classic MDA plugins rebuilt as native Apple Silicon VST3s: **Piano, ePiano, DX10, JX10 and Leslie**. Version 0.1.0 is a local preview build with compact vintage interfaces, factory-program selection, automation, and an audition keyboard on the instruments.
+Five classic MDA plugins rebuilt as native Apple Silicon VST3s: **Piano, ePiano, DX10, JX10 and Leslie**. Version 0.1.1 is a local preview build with compact vintage interfaces in sunset orange, factory-program selection, automation, and an audition keyboard on the instruments.
 
 ## Use in Cubase
 
@@ -36,4 +36,4 @@ The four instrument ports are based on [Matthijs Hollemans' JUCE conversions](ht
 
 JUCE is pinned to **9.0.5**, commit `d60b7a78030661574a615b586d9325ba7a7fa7dd`. The combined JUCE-linked builds and new integration/editor code are supplied under **AGPL-3.0-or-later**. The original MDA and Hollemans code retains its MIT notices. See [LICENSE.md](LICENSE.md) and `licenses/` for the applicable texts and JUCE's dependency inventory. The package includes complete corresponding source, including JUCE.
 
-See [docs/VERIFICATION.md](docs/VERIFICATION.md) for the executed checks and limitations. These are ad hoc signed local development builds, not Developer ID signed or notarised distribution releases.
+See [docs/SUNSET-ORANGE.md](docs/SUNSET-ORANGE.md) for the 0.1.1 colour refresh checks and [docs/VERIFICATION.md](docs/VERIFICATION.md) for the initial port's validation and limitations. These are ad hoc signed local development builds, not Developer ID signed or notarised distribution releases.

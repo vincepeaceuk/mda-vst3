@@ -3,7 +3,8 @@
 
 namespace mda {
 namespace {
-const juce::Colour panel{0xffd3d7cc}, ink{0xff233c38}, muted{0xff64726b}, paper{0xffedf0dc};
+const juce::Colour panel{0xffedaa75}, ink{0xff3e2624}, muted{0xff6a3828}, paper{0xfffff0d5};
+const juce::Colour sunset{0xffb44620}, headerStart{0xff622b24}, headerEnd{0xff91402b}, horizon{0xffffa158}, glow{0xffffd3a1};
 juce::Font mono(float size, bool bold = false)
 {
     return juce::Font(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), size,
@@ -130,20 +131,21 @@ RevivalEditor::RevivalEditor(juce::AudioProcessor& processor, juce::AudioProcess
                              std::function<void()> panic)
     : AudioProcessorEditor(processor), processor_(processor), model_(model)
 {
+    accent_ = sunset;
     if (model == "Piano") {
-        accent_ = juce::Colour(0xffa16d32); subtitle_ = "ACOUSTIC PIANO";
+        subtitle_ = "ACOUSTIC PIANO";
         sections_ = {{"ENVELOPE / TONE", {0,1,2,3}}, {"TOUCH / RESPONSE", {4,5,6,8}}, {"SPACE / TUNING", {7,9,10,11}}};
     } else if (model == "EPiano") {
-        accent_ = juce::Colour(0xff367c74); subtitle_ = "ELECTRIC PIANO"; model_ = "ePiano";
+        subtitle_ = "ELECTRIC PIANO"; model_ = "ePiano";
         sections_ = {{"ENVELOPE / TONE", {0,1,2,3}}, {"MODULATION / DRIVE", {4,5,11,7}}, {"TOUCH / TUNING", {6,8,9,10}}};
     } else if (model == "DX10") {
-        accent_ = juce::Colour(0xff5673a4); subtitle_ = "FM SYNTHESIZER";
+        subtitle_ = "FM SYNTHESIZER";
         sections_ = {{"CARRIER", {0,1,2,13,11,12}}, {"MODULATOR", {3,4,5,6,7,8}}, {"VELOCITY / MOTION", {9,10,14,15}}};
     } else if (model == "JX10") {
-        accent_ = juce::Colour(0xffb45a3e); subtitle_ = "ANALOGUE SYNTHESIZER";
+        subtitle_ = "ANALOGUE SYNTHESIZER";
         sections_ = {{"OSCILLATORS / GLIDE", {0,1,2,3,4,5,22,23}}, {"FILTER / ENVELOPE", {6,7,8,10,11,12,13,14}}, {"AMPLITUDE / MODULATION", {15,16,17,18,19,20,9,21}}};
     } else {
-        accent_ = juce::Colour(0xff7e6a8e); subtitle_ = "ROTARY SPEAKER";
+        subtitle_ = "ROTARY SPEAKER";
         sections_ = {{"ROTATION", {0,8,6}}, {"DRUM / OUTPUT", {1,2,7}}, {"HORN", {3,4,5}}};
     }
     style_ = std::make_unique<Style>(accent_);
@@ -210,15 +212,17 @@ void RevivalEditor::paint(juce::Graphics& g)
 {
     g.fillAll(panel);
     const auto bounds = getLocalBounds();
-    g.setColour(ink); g.fillRect(0, 0, getWidth(), 70);
-    g.setColour(accent_); g.fillRect(0, 67, getWidth(), 3);
+    g.setGradientFill(juce::ColourGradient(headerStart, 0.0f, 0.0f,
+                                          headerEnd, static_cast<float>(getWidth()), 70.0f, false));
+    g.fillRect(0, 0, getWidth(), 70);
+    g.setColour(horizon); g.fillRect(0, 67, getWidth(), 3);
     g.setFont(juce::Font(juce::FontOptions(34.0f, juce::Font::bold)));
     g.setColour(paper); g.drawText("mda", 22, 10, 82, 45, juce::Justification::centredLeft);
     g.setFont(mono(27.0f)); g.drawText(model_, 117, 10, 230, 43, juce::Justification::centredLeft);
-    g.setFont(mono(10.0f)); g.setColour(panel.withAlpha(0.78f));
+    g.setFont(mono(10.0f)); g.setColour(paper);
     g.drawText(subtitle_, 120, 49, 270, 13, juce::Justification::centredLeft);
     g.drawText("CLASSIC MDA", getWidth() - 158, 20, 135, 14, juce::Justification::centredRight);
-    g.setColour(accent_.brighter(0.2f));
+    g.setColour(glow);
     g.drawText("REVIVAL / 01", getWidth() - 158, 37, 135, 14, juce::Justification::centredRight);
     g.setFont(mono(10.0f, true)); g.setColour(muted);
     g.drawText("PROGRAM", 22, 84, 80, 20, juce::Justification::centredLeft);
@@ -235,7 +239,7 @@ void RevivalEditor::paint(juce::Graphics& g)
     g.setColour(muted.withAlpha(0.4f)); g.drawHorizontalLine(getHeight() - 24, 22.0f, static_cast<float>(getWidth() - 22));
     g.setFont(mono(9.0f)); g.setColour(muted);
     g.drawText("PAUL KELLETT / MDA", 22, getHeight() - 21, 250, 16, juce::Justification::centredLeft);
-    g.drawText("VST3  /  0.1.0", getWidth() - 180, getHeight() - 21, 158, 16, juce::Justification::centredRight);
+    g.drawText("VST3  /  " JucePlugin_VersionString, getWidth() - 180, getHeight() - 21, 158, 16, juce::Justification::centredRight);
     for (const int x : {9, getWidth() - 10}) {
         for (const int y : {9, getHeight() - 10}) {
             g.setColour(muted.withAlpha(0.6f)); g.drawEllipse(static_cast<float>(x - 2), static_cast<float>(y - 2), 4.0f, 4.0f, 0.7f);

@@ -9,7 +9,7 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 JUCE_COMMIT = "d60b7a78030661574a615b586d9325ba7a7fa7dd"
 MODELS = {"Piano": "mda Piano", "EPiano": "mda ePiano", "DX10": "mda DX10",
           "JX10": "mda JX10", "Leslie": "mda Leslie"}
